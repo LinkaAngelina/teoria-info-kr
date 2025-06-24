@@ -1,0 +1,93 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <iomanip>
+
+using namespace std;
+
+// Вывод матрицы
+void printMatrix(const vector<vector<double>>& matrix, const string& name) {
+    cout << "\n" << name << ":\n";
+    for (const auto& row : matrix) {
+        for (double val : row) {
+            cout << fixed << setprecision(4) << val << "\t";
+        }
+        cout << endl;
+    }
+}
+
+// Функция для логарифма по основанию 2
+double log2safe(double x) {
+    return (x > 0) ? log2(x) : 0;
+}
+
+int main() {
+    // Вероятности источника P(A)
+    vector<double> P_A = {0.21, 0.32, 0.09, 0.38};
+
+    // Условные вероятности P(B|A)
+    vector<vector<double>> P_B_given_A = {
+        {0.97, 0.02, 0.01, 0.0},
+        {0.02, 0.98, 0.0, 0.0},
+        {0.0, 0.02, 0.95, 0.03},
+        {0.0, 0.0, 0.01, 0.99}
+    };
+
+    int n = P_A.size();
+    vector<vector<double>> P_A_B(n, vector<double>(n, 0.0));   // Совместные вероятности
+    vector<double> P_B(n, 0.0);                                // Маргинальные вероятности P(B)
+    vector<vector<double>> P_A_given_B(n, vector<double>(n));  // Условные вероятности P(A|B)
+
+    // Расчёт совместных вероятностей
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+            P_A_B[i][j] = P_A[i] * P_B_given_A[i][j];
+
+    // Расчёт маргинальных вероятностей P(B)
+    for (int j = 0; j < n; ++j)
+        for (int i = 0; i < n; ++i)
+            P_B[j] += P_A_B[i][j];
+
+    // Расчёт P(A|B)
+    for (int j = 0; j < n; ++j)
+        for (int i = 0; i < n; ++i)
+            P_A_given_B[i][j] = (P_B[j] > 0) ? P_A_B[i][j] / P_B[j] : 0.0;
+
+    // Энтропия источника H(A)
+    double H_A = 0;
+    for (double pa : P_A)
+        H_A -= (pa > 0) ? pa * log2safe(pa) : 0;
+
+    // Энтропия приёмника H(B)
+    double H_B = 0;
+    for (double pb : P_B)
+        H_B -= (pb > 0) ? pb * log2safe(pb) : 0;
+
+    // Условная энтропия H(A|B)
+    double H_A_given_B = 0;
+    for (int j = 0; j < n; ++j) {
+        double H_col = 0;
+        for (int i = 0; i < n; ++i)
+            H_col -= P_A_given_B[i][j] > 0 ? P_A_given_B[i][j] * log2safe(P_A_given_B[i][j]) : 0;
+        H_A_given_B += P_B[j] * H_col;
+    }
+
+    // Пропускная способность
+    double C = H_A - H_A_given_B;
+
+    // Вывод результатов
+    printMatrix(P_B_given_A, "P(B|A)");
+    printMatrix(P_A_B, "P(A,B)");
+    printMatrix(P_A_given_B, "P(A|B)");
+
+    cout << "\nP(B): ";
+    for (double pb : P_B)
+        cout << fixed << setprecision(4) << pb << "\t";
+
+    cout << "\n\nH(A) = " << H_A << " бит";
+    cout << "\nH(B) = " << H_B << " бит";
+    cout << "\nH(A|B) = " << H_A_given_B << " бит";
+    cout << "\nПропускная способность C = " << C << " бит/символ\n";
+
+    return 0;
+}
