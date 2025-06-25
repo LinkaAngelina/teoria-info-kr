@@ -1,0 +1,97 @@
+public class ChannelMatrixCalculator {
+    public static void main(String[] args) {
+        // Исходные данные - канальная матрица
+        double[][] channelMatrix = {
+            {0.97, 0.02, 0.01, 0.00},
+            {0.02, 0.98, 0.00, 0.00},
+            {0.00, 0.02, 0.95, 0.03},
+            {0.00, 0.00, 0.01, 0.99}
+        };
+        
+        // Проверка, что матрица является стохастической
+        if (isStochasticMatrix(channelMatrix)) {
+            System.out.println("Матрица является стохастической (верны все условия).");
+            
+            // Рассчет энтропии для каждого входного символа
+            System.out.println("\nЭнтропия для каждого входного символа:");
+            for (int i = 0; i < channelMatrix.length; i++) {
+                double entropy = calculateEntropy(channelMatrix[i]);
+                System.out.printf("H(b|a%d) = %.4f бит\n", i+1, entropy);
+            }
+            
+            // Рассчет средней взаимной информации
+            System.out.println("\nСредняя взаимная информация:");
+            double mutualInfo = calculateMutualInformation(channelMatrix);
+            System.out.printf("I(a,b) = %.4f бит\n", mutualInfo);
+            
+        } else {
+            System.out.println("Матрица не является стохастической. Проверьте данные.");
+        }
+    }
+    
+    // Проверка, что матрица является стохастической
+    public static boolean isStochasticMatrix(double[][] matrix) {
+        for (double[] row : matrix) {
+            double sum = 0.0;
+            for (double prob : row) {
+                if (prob < 0 || prob > 1) {
+                    return false; // Вероятности должны быть в диапазоне [0,1]
+                }
+                sum += prob;
+            }
+            if (Math.abs(sum - 1.0) > 1e-9) { // Учет погрешности вычислений с плавающей точкой
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    // Рассчет энтропии для строки матрицы (условной энтропии H(b|a_i))
+    public static double calculateEntropy(double[] probabilities) {
+        double entropy = 0.0;
+        for (double prob : probabilities) {
+            if (prob > 0) { // 0 * log(0) считается 0
+                entropy -= prob * log2(prob);
+            }
+        }
+        return entropy;
+    }
+    
+    // Рассчет средней взаимной информации I(a,b)
+    public static double calculateMutualInformation(double[][] channelMatrix) {
+        int inputSize = channelMatrix.length;
+        int outputSize = channelMatrix[0].length;
+        
+        // Предполагаем равномерное распределение входных символов
+        double[] pA = new double[inputSize];
+        for (int i = 0; i < inputSize; i++) {
+            pA[i] = 1.0 / inputSize;
+        }
+        
+        // Рассчет безусловных вероятностей выходных символов p(b_j)
+        double[] pB = new double[outputSize];
+        for (int j = 0; j < outputSize; j++) {
+            for (int i = 0; i < inputSize; i++) {
+                pB[j] += pA[i] * channelMatrix[i][j];
+            }
+        }
+        
+        // Рассчет взаимной информации I(a,b)
+        double mutualInfo = 0.0;
+        for (int i = 0; i < inputSize; i++) {
+            for (int j = 0; j < outputSize; j++) {
+                if (channelMatrix[i][j] > 0 && pB[j] > 0) {
+                    mutualInfo += pA[i] * channelMatrix[i][j] * 
+                                 log2(channelMatrix[i][j] / pB[j]);
+                }
+            }
+        }
+        
+        return mutualInfo;
+    }
+    
+    // Вспомогательная функция для вычисления логарифма по основанию 2
+    public static double log2(double x) {
+        return Math.log(x) / Math.log(2);
+    }
+}
